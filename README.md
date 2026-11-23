@@ -60,3 +60,26 @@ npm run dev
 - 例題用のハードコード地点を「新規発見」として返さない
 
 公式ドキュメント： [Cloudflare Workers Static Assets](https://developers.cloudflare.com/workers/static-assets/) / [Workers AI Bindings](https://developers.cloudflare.com/workers-ai/configuration/bindings/) / [Git integration](https://developers.cloudflare.com/workers/ci-cd/builds/git-integration/)
+
+## 2026-11-23 Cloudflare実通信検証結果（v0.5.5-dev）
+
+本番Worker: https://stratadestruct.uniuyuni-c76.workers.dev/
+
+- HTTP GET `/` と `/api/health` は200
+- Workers AIのモデルバインディング確認済み
+- 無料API検索：Wikipedia + Crossrefで10件を実取得（約0.2秒）
+- 自由文解析：Gemma 4 → Llama 3.1 8B fastへの無料フォールバックで構造化計画を取得（約15秒）
+- 「画像復元＋天文学」の異分野条件を保持した検索フレーズを生成
+- 実検索で17件の資料索引／メタデータを取得、Crossrefの1件が429を返したが他の結果は保持
+- GitHub Actions単体・ビルドとLive Cloudflare smoke testが成功
+- 参照ログ: https://github.com/uniuyuni/StrataDestruct/actions/runs/45166896792
+
+### 次に解決する問題
+
+1. **公開URLの保護**: 現状の /api/search は認証前提になっていない。個人運用ならCloudflare Accessで制限する（これにより匿名CIの実通信テストには別途認証方法が必要）。
+2. **検索品質**: 初期版の情報源はWikipediaとCrossrefのみ。検索結果は索引であり、本文の読み取り・独立証拠照合・仮説生成は未実装。
+3. **APIレート制御**: Crossrefは実際にHTTP 429を返した。バックオフ・キャッシュ・問い合わせ回数制御を追加。
+4. **AI安定性**: 無料モデルの応答時間・JSON品質にばらつきがある。実測に基づくモデル選択を継続。
+5. **料金上限**: 現在は無料経路のみで有料APIなし。有料モデル導入時は料金予約・超過防止・無料フォールバックを実装する。
+
+P0は、自然文→調査計画→無料情報源の実通信が通る段階まで到達しましたが、汎用的な探索先選択と根拠検証などは未完了です。
