@@ -8,7 +8,7 @@ const ms=()=>Math.round(performance.now());
 export default {
   async fetch(request, env) {
     const url=new URL(request.url);
-    if(url.pathname==='/api/health') return respond({app:'Strata Destruct',version:'0.5.1-dev',ai_binding:Boolean(env?.AI),status:'ok'});
+    if(url.pathname==='/api/health') return respond({app:'Strata Destruct',version:'0.5.2-dev',ai_binding:Boolean(env?.AI),status:'ok'});
     if(url.pathname==='/api/search' && request.method==='POST'){
       let payload;
       try{payload=await request.json();}catch{return respond({error:'JSONリクエストが不正です'},400);}
