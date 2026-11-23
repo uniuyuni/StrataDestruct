@@ -25,7 +25,7 @@ try {
   console.log('Health',health.json??shorten(health.body));
   if(health.json?.app!=='Strata Destruct') failures++;
 }catch(e){console.error('Health failed',e.message);failures++;}
-if(health?.json?.version!=='0.5.1-dev'){
+if(health?.json?.version!=='0.5.2-dev'){
   console.error('DEPLOYMENT MISMATCH: expected 0.5.1-dev, got',health?.json?.version,' (possibly deployment not updated yet).');
   failures++;
 }else{
@@ -40,6 +40,10 @@ if(health?.json?.version!=='0.5.1-dev'){
     const res=await post('写真の空気感を改善する画像復元技術を天文学の研究も含めて探したい',true);
     console.log('AI status',res.json?.ai_status,'AI error',res.json?.ai_error,'timings',res.json?.timings_ms);
     console.log('AI plan',JSON.stringify(res.json?.plan));
+    if(!Array.isArray(res.json?.plan?.search_queries) || !res.json.plan.search_queries.some(x=>/天文|astron|space/i.test(x))){
+      console.error('P0 NOT DONE: cross-domain astronomy intent missing in executed search queries');
+      failures++;
+    }
     console.log('AI source statuses',JSON.stringify(res.json?.sources));
     console.log('AI records count',res.json?.records?.length);
     if(!res.r.ok || res.json?.ai_status!=='ok'){console.error('P0 NOT DONE: AI semantic analysis failed or fell back');failures++;}
