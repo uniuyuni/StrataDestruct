@@ -3,7 +3,7 @@ export const MODEL = '@cf/zai-org/glm-4.7-flash';
 export function basicPlan(query) {
   const q = String(query ?? '').trim().slice(0, 1200);
   if (!q) throw new Error('調べたいことを入力してください');
-  return { goal: q, keywords: [q], languages: ['ja', 'en'], sources: ['wikipedia', 'crossref'], constraints: [], unknowns: ['利用可能な索引だけを検索しています。条件の完全な解釈は未実施です'], ai_generated: false };
+  return { goal: q, keywords: [q], languages: ['ja', 'en'], sources: ['wikipedia', 'crossref'], constraints: [], unknowns: ['AIによる自由文解釈は実施されていません。入力全文で検索しています'], ai_generated: false };
 }
 
 export function extractJson(value) {
@@ -11,8 +11,7 @@ export function extractJson(value) {
   let s = String(value ?? '').trim().replace(/<think>[\s\S]*?<\/think>/g, '').trim();
   const fence = s.match(/```(?:json)?\s*([\s\S]*?)```/i);
   if (fence) s = fence[1];
-  const start = s.indexOf('{');
-  const end = s.lastIndexOf('}');
+  const start = s.indexOf('{'), end = s.lastIndexOf('}');
   if (start < 0 || end <= start) throw new Error('AIがJSONを返しませんでした');
   return JSON.parse(s.slice(start, end + 1));
 }
@@ -34,27 +33,38 @@ export function validatePlan(candidate, query) {
   };
 }
 
-export async function createPlan(query, ai) {
+export function unwrapResponse(output) {
+  if (output?.choices?.[0]?.message?.content) return output.choices[0].message.content;
+  if (output?.response !== undefined) return output.response;
+  if (output?.result?.choices?.[0]?.message?.content) return output.result.choices[0].message.content;
+  if (output?.result?.response !== undefined) return output.result.response;
+  return output;
+}
+
+export async function createPlan(query, ai, {timeoutMs=10000}={}) {
   const fallback = basicPlan(query);
-  if (!ai?.run) return { plan: fallback, status: 'unavailable', error: 'Workers AIが設定されていません' };
+  if (!ai?.run) return {plan:fallback,status:'unavailable',error:'Workers AIが設定されていません'};
   const prompt = [
-    'あなたはStrata Destructの情報発掘プランナーです。',
-    'ユーザー入力を歪めず、自由文の目的・制約・検索語を解釈してください。',
-    '必ずJSONオブジェクトだけを返してください。',
-    'キー: goal(string), keywords(string[] 最大8), languages(string[]), sources(string[] wikipedia/crossref のみ), constraints(string[]), unknowns(string[])。',
-    '地理や技術に偏らずテーマに適切な検索語と英訳を考えてください。事実や引用を捏造しないでください。',
-    '入力:', query
+    'あなたはStrata Destructの情報調査プランナー。どんなテーマでも自由文を解釈する。',
+    'JSONのみ返す。キー goal(string),keywords(string[] 最大8),languages(string[]),sources(string[] Wikipediaはwikipedia、論文はcrossrefのみ),constraints(string[]),unknowns(string[])。',
+    '検索語は自然で簡潔に、異表記と英訳を考慮。事実や出典を創作しない。原文の制約を落とさない。',
+    '入力:',query
   ].join('\n');
+  let timer;
   try {
-    const output = await ai.run(MODEL, {
-      messages: [{role: 'user', content: prompt}],
-      max_tokens: 1200,
-      temperature: 0.15,
-      response_format: {type: 'json_object'}
-    });
-    const response = output?.response ?? output?.result?.response ?? output?.result ?? output;
-    return { plan: validatePlan(extractJson(response), query), status: 'ok', error: null };
-  } catch (e) {
-    return { plan: fallback, status: 'fallback', error: 'AIによる解釈に失敗したため、入力全文を無料検索します: ' + String(e?.message ?? e).slice(0, 180) };
-  }
+    const timeout = new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('Workers AI応答が'+timeoutMs+'msを超えた')),timeoutMs)});
+    const output = await Promise.race([
+      ai.run(MODEL, {
+        messages:[{role:'user',content:prompt}],
+        max_completion_tokens:600,
+        temperature:0.1,
+        chat_template_kwargs:{enable_thinking:false},
+        response_format:{type:'json_object'}
+      }),
+      timeout
+    ]);
+    return {plan:validatePlan(extractJson(unwrapResponse(output)),query),status:'ok',error:null};
+  }catch(e){
+    return {plan:fallback,status:'fallback',error:'AIによる解釈が完了せず、入力全文で検索します: '+String(e?.message??e).slice(0,180)};
+  }finally{clearTimeout(timer);}
 }
