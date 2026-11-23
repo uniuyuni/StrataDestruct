@@ -74,3 +74,15 @@ test('AI timeout degrades rather than hanging the whole HTTP request', async () 
   assert.equal(r.status,'fallback');
   assert.ok(Date.now()-at<500);
 });
+
+test('cross-domain query is preserved as a real source search', async () => {
+  const p=validatePlan({
+    keywords:['画像復元','天文学'],
+    search_queries:['天文学 画像復元','astronomical image restoration'],
+    sources:['wikipedia','crossref']
+  },'天文学の画像復元を探す');
+  assert.deepEqual(p.search_queries,['天文学 画像復元','astronomical image restoration']);
+  const r=await searchSources(p,fakeFetch);
+  assert.equal(r.reports.length,4);
+  assert.ok(r.reports.some(x=>x.query==='astronomical image restoration'));
+});
