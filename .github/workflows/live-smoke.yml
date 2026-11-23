@@ -3,6 +3,9 @@ on:
   push:
     paths:
       - 'scripts/live-smoke.mjs'
+      - 'src/**'
+      - 'wrangler.jsonc'
+      - 'public/**'
       - '.github/workflows/live-smoke.yml'
   workflow_dispatch:
 jobs:
