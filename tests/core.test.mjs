@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { basicPlan, validatePlan, createPlan, extractJson } from '../src/plan.js';
+import { basicPlan, validatePlan, createPlan, extractJson, unwrapResponse } from '../src/plan.js';
 import { wikipedia, crossref, searchSources } from '../src/providers.js';
 
 test('natural language is not filtered by a fixed keyword dictionary', () => {
@@ -61,4 +61,16 @@ test('one failed source does not hide other results', async ()=>{
   const r=await searchSources({keywords:['紅葉'],sources:['wikipedia','crossref']},fetcher);
   assert.equal(r.records.length,1);
   assert.equal(r.reports.filter(x=>x.status==='error').length,1);
+});
+
+test('AI response with chat completion choices can be parsed', () => {
+  const output={choices:[{message:{content:'{"goal":"test","keywords":["歴史","history"],"sources":["wikipedia"]}'}}]};
+  assert.equal(validatePlan(extractJson(unwrapResponse(output)),'test').keywords[1],'history');
+});
+test('AI timeout degrades rather than hanging the whole HTTP request', async () => {
+  const ai={run:()=>new Promise(()=>{})};
+  const at=Date.now();
+  const r=await createPlan('専門資料を見つけたい',ai,{timeoutMs:50});
+  assert.equal(r.status,'fallback');
+  assert.ok(Date.now()-at<500);
 });
