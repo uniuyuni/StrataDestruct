@@ -50,7 +50,7 @@ export async function crossref(term, fetcher = fetch) {
 }
 
 export async function searchSources(plan, fetcher = fetch) {
-  const terms = (plan.keywords ?? []).slice(0, 2).filter(Boolean);
+  const terms = (Array.isArray(plan.search_queries) && plan.search_queries.length ? plan.search_queries : (plan.keywords ?? [])).slice(0, 3).filter(Boolean);
   const sources = (plan.sources ?? ['wikipedia', 'crossref']).filter(s => ['wikipedia','crossref'].includes(s));
   const tasks = sources.flatMap(source => terms.map(term => ({
     source, term, run: () => source === 'wikipedia' ? wikipedia(term, fetcher) : crossref(term, fetcher)
