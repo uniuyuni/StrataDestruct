@@ -1,0 +1,20 @@
+name: Live Cloudflare smoke test
+on:
+  push:
+    paths:
+      - 'scripts/live-smoke.mjs'
+      - '.github/workflows/live-smoke.yml'
+  workflow_dispatch:
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Probe deployed application and make one real search
+        env:
+          STRATA_URL: https://stratadestruct.uniuyuni-c76.workers.dev
+        run: node scripts/live-smoke.mjs
