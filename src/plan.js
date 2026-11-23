@@ -3,7 +3,7 @@ export const MODEL = '@cf/zai-org/glm-4.7-flash';
 export function basicPlan(query) {
   const q = String(query ?? '').trim().slice(0, 1200);
   if (!q) throw new Error('調べたいことを入力してください');
-  return { goal: q, keywords: [q], languages: ['ja', 'en'], sources: ['wikipedia', 'crossref'], constraints: [], unknowns: ['AIによる自由文解釈は実施されていません。入力全文で検索しています'], ai_generated: false };
+  return { goal: q, keywords: [q], search_queries: [q], languages: ['ja', 'en'], sources: ['wikipedia', 'crossref'], constraints: [], unknowns: ['AIによる自由文解釈は実施されていません。入力全文で検索しています'], ai_generated: false };
 }
 
 export function extractJson(value) {
@@ -25,7 +25,9 @@ export function validatePlan(candidate, query) {
   const sources = clean(candidate.sources, 3).filter(s => allowed.includes(s));
   return {
     goal: typeof candidate.goal === 'string' ? candidate.goal.slice(0, 300) : query,
-    keywords, languages: clean(candidate.languages, 3),
+    keywords,
+    search_queries: clean(candidate.search_queries, 4).length ? clean(candidate.search_queries, 4) : [keywords.slice(0, 3).join(' ')],
+    languages: clean(candidate.languages, 3),
     sources: sources.length ? sources : allowed,
     constraints: clean(candidate.constraints, 10),
     unknowns: clean(candidate.unknowns, 8),
@@ -46,8 +48,8 @@ export async function createPlan(query, ai, {timeoutMs=10000}={}) {
   if (!ai?.run) return {plan:fallback,status:'unavailable',error:'Workers AIが設定されていません'};
   const prompt = [
     'あなたはStrata Destructの情報調査プランナー。どんなテーマでも自由文を解釈する。',
-    'JSONのみ返す。キー goal(string),keywords(string[] 最大8),languages(string[]),sources(string[] Wikipediaはwikipedia、論文はcrossrefのみ),constraints(string[]),unknowns(string[])。',
-    '検索語は自然で簡潔に、異表記と英訳を考慮。事実や出典を創作しない。原文の制約を落とさない。',
+    'JSONのみ返す。キー goal(string),keywords(string[] 最大8),search_queries(string[] 3〜4件),languages(string[]),sources(string[] wikipedia/crossrefのみ),constraints(string[]),unknowns(string[])。',
+    'search_queriesは単語単体ではなく2〜6語の検索フレーズ。主要な目的と異分野への接続条件を落とさず、日本語と英語の両方を含める。例えば画像復元と天文学なら「天文学 画像復元」と「astronomical image restoration」。出典を捏造しない。',
     '入力:',query
   ].join('\n');
   let timer;
