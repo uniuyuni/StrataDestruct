@@ -25,7 +25,7 @@ try {
   console.log('Health',health.json??shorten(health.body));
   if(health.json?.app!=='Strata Destruct') failures++;
 }catch(e){console.error('Health failed',e.message);failures++;}
-const targetVersion='0.5.4-dev';
+const targetVersion='0.5.5-dev';
 for (let attempt=0; attempt<15 && health?.json?.version!==targetVersion; attempt++) {
   await new Promise(resolve=>setTimeout(resolve,4000));
   try {
@@ -34,7 +34,7 @@ for (let attempt=0; attempt<15 && health?.json?.version!==targetVersion; attempt
   } catch(e){console.log('Deploy poll error',e.message);}
 }
 if(health?.json?.version!==targetVersion){
-  console.error('DEPLOYMENT MISMATCH: expected 0.5.4-dev, got',health?.json?.version,' (possibly deployment not updated yet).');
+  console.error('DEPLOYMENT MISMATCH: expected 0.5.5-dev, got',health?.json?.version,' (possibly deployment not updated yet).');
   failures++;
 }else{
   try{
@@ -46,7 +46,7 @@ if(health?.json?.version!==targetVersion){
   }catch(e){console.error('No-AI lookup failed',e.message);failures++;}
   try{
     const res=await post('写真の空気感を改善する画像復元技術を天文学の研究も含めて探したい',true);
-    console.log('AI status',res.json?.ai_status,'AI error',res.json?.ai_error,'timings',res.json?.timings_ms);
+    console.log('AI model',res.json?.ai_model); console.log('AI status',res.json?.ai_status,'AI error',res.json?.ai_error,'timings',res.json?.timings_ms);
     console.log('AI plan',JSON.stringify(res.json?.plan));
     if(!Array.isArray(res.json?.plan?.search_queries) || !res.json.plan.search_queries.some(x=>/天文|astron|space/i.test(x))){
       console.error('P0 NOT DONE: cross-domain astronomy intent missing in executed search queries');
