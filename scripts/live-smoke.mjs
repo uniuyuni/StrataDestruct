@@ -25,7 +25,7 @@ try {
   console.log('Health',health.json??shorten(health.body));
   if(health.json?.app!=='Strata Destruct') failures++;
 }catch(e){console.error('Health failed',e.message);failures++;}
-const targetVersion='0.5.3-dev';
+const targetVersion='0.5.4-dev';
 for (let attempt=0; attempt<15 && health?.json?.version!==targetVersion; attempt++) {
   await new Promise(resolve=>setTimeout(resolve,4000));
   try {
@@ -34,7 +34,7 @@ for (let attempt=0; attempt<15 && health?.json?.version!==targetVersion; attempt
   } catch(e){console.log('Deploy poll error',e.message);}
 }
 if(health?.json?.version!==targetVersion){
-  console.error('DEPLOYMENT MISMATCH: expected 0.5.3-dev, got',health?.json?.version,' (possibly deployment not updated yet).');
+  console.error('DEPLOYMENT MISMATCH: expected 0.5.4-dev, got',health?.json?.version,' (possibly deployment not updated yet).');
   failures++;
 }else{
   try{
