@@ -74,7 +74,7 @@ export async function createPlan(query,ai,{timeoutMs=22000}={}){
     '入力:',query
   ].join('\n');
   const errors=[];
-  const variants=[{model:MODEL,ms:Math.min(timeoutMs,15000)},{model:SECONDARY_MODEL,ms:Math.min(Math.max(timeoutMs-15000,4000),8000)}];
+  const variants=timeoutMs<1000 ? [{model:MODEL,ms:timeoutMs}] : [{model:MODEL,ms:Math.min(timeoutMs,15000)},{model:SECONDARY_MODEL,ms:Math.min(Math.max(timeoutMs-15000,4000),8000)}];
   for(const {model,ms} of variants){
     try{
       const out=await runBounded(ai,model,prompt,ms);
