@@ -8,7 +8,7 @@ const ms=()=>Math.round(performance.now());
 export default {
   async fetch(request, env) {
     const url=new URL(request.url);
-    if(url.pathname==='/api/health') return respond({app:'Strata Destruct',version:'0.5.4-dev',ai_binding:Boolean(env?.AI),status:'ok'});
+    if(url.pathname==='/api/health') return respond({app:'Strata Destruct',version:'0.5.5-dev',ai_binding:Boolean(env?.AI),status:'ok'});
     if(url.pathname==='/api/search' && request.method==='POST'){
       let payload;
       try{payload=await request.json();}catch{return respond({error:'JSONリクエストが不正です'},400);}
@@ -20,13 +20,13 @@ export default {
         const skipAI=payload?.use_ai===false;
         const parsed=skipAI
           ? {plan:basicPlan(query),status:'skipped',error:'AIを使用せず、入力全文で資料索引を検索'}
-          : await createPlan(query,env?.AI,{timeoutMs:18000});
+          : await createPlan(query,env?.AI,{timeoutMs:22000});
         const aiMs=ms()-start;
         const findings=await searchSources(parsed.plan);
         const fetchMs=ms()-start-aiMs;
         return respond({
           query,mode:'free_only',plan:parsed.plan,ai_status:parsed.status,
-          ai_error:parsed.error,records:findings.records,sources:findings.reports,
+          ai_error:parsed.error,ai_model:parsed.model??null,records:findings.records,sources:findings.reports,
           timings_ms:{ai:aiMs,sources:fetchMs,total:ms()-start},
           caveat:'検索索引・メタデータのみ確認済み。原資料本文は未検証であり、新発見を意味しません。'
         });
