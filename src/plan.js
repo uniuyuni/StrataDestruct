@@ -43,7 +43,7 @@ export function unwrapResponse(output) {
   return output;
 }
 
-export async function createPlan(query, ai, {timeoutMs=10000}={}) {
+export async function createPlan(query, ai, {timeoutMs=18000}={}) {
   const fallback = basicPlan(query);
   if (!ai?.run) return {plan:fallback,status:'unavailable',error:'Workers AIが設定されていません'};
   const prompt = [
