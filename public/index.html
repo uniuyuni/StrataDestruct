@@ -13,7 +13,7 @@
 <textarea id="query" placeholder="例：写真の空気感を高める画像復元技術を、天文学や顕微鏡の研究も含めて探したい"></textarea>
 <div><button id="search">調査を開始</button></div><p id="status" class="muted" role="status">無料APIのみ。対応キーワードの制限はありません。</p></section>
 <section class="panel" id="output" hidden><h2>調査計画</h2><div id="mode" class="hint"></div><pre id="plan"></pre><h2>資料候補</h2><div id="sources" class="muted"></div><div id="items"></div></section>
-<footer><small>Strata Destruct v0.5.3-dev / 取得した索引は原資料の本文検証ではありません。</small></footer>
+<footer><small>Strata Destruct v0.5.4-dev / 取得した索引は原資料の本文検証ではありません。</small></footer>
 </main><script>
 const q=document.querySelector('#query'),button=document.querySelector('#search'),status=document.querySelector('#status'),out=document.querySelector('#output');
 function el(tag,txt,cls){const x=document.createElement(tag);if(cls)x.className=cls;x.textContent=txt;return x}
