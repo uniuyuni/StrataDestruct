@@ -1,4 +1,4 @@
-export const MODEL = '@cf/zai-org/glm-4.7-flash';
+export const MODEL = '@cf/google/gemma-4-26b-a4b-it';
 
 export function basicPlan(query) {
   const q = String(query ?? '').trim().slice(0, 1200);
@@ -60,7 +60,6 @@ export async function createPlan(query, ai, {timeoutMs=18000}={}) {
         messages:[{role:'user',content:prompt}],
         max_completion_tokens:600,
         temperature:0.1,
-        chat_template_kwargs:{enable_thinking:false},
         response_format:{type:'json_object'}
       }),
       timeout
