@@ -1,6 +1,7 @@
 import { createPlan, basicPlan } from './plan.js';
 import { searchSources } from './providers.js';
 import { webSearch } from './web-search.js';
+import { assess } from './assessment.js';
 
 const HEADERS = {'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'};
 const respond=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:HEADERS});
@@ -32,8 +33,9 @@ export default {
         ]);
         const findings={records:[...web.records,...indexes.records],reports:[...(web.report?[web.report]:[]),...indexes.reports]};
         const fetchMs=ms()-start-aiMs;
+        const assessment=skipAI?{status:'skipped',candidates:[]}:await assess(query,web.records,env?.AI);
         return respond({
-          query,mode:'free_only',plan:parsed.plan,ai_status:parsed.status,
+          query,mode:'free_only',plan:parsed.plan,assessment,ai_status:parsed.status,
           ai_error:parsed.error,ai_model:parsed.model??null,records:findings.records,sources:findings.reports,
           timings_ms:{ai:aiMs,sources:fetchMs,total:ms()-start},
           caveat:'検索索引・Web抜粋・メタデータです。条件適合と原資料全文は未検証です。'
