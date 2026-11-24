@@ -12,8 +12,8 @@
 <section class="panel"><label for="query"><strong>知りたいことを自由に入力</strong></label>
 <textarea id="query" placeholder="例：写真の空気感を高める画像復元技術を、天文学や顕微鏡の研究も含めて探したい"></textarea>
 <div><button id="search">調査を開始</button></div><p id="status" class="muted" role="status">無料APIのみ。対応キーワードの制限はありません。</p></section>
-<section class="panel" id="output" hidden><h2>調査計画</h2><div id="mode" class="hint"></div><pre id="plan"></pre><h2>条件別の候補評価</h2><div id="assessment"></div><h2>資料候補</h2><div id="sources" class="muted"></div><div id="items"></div></section>
-<footer><small>Strata Destruct v0.6.1-dev / 取得した索引は原資料の本文検証ではありません。</small></footer>
+<section class="panel" id="output" hidden><h2>候補地・結論</h2><div id="assessment"></div><details><summary>調査計画を見る</summary><div id="mode" class="hint"></div><pre id="plan"></pre></details><h2>根拠資料</h2><div id="sources" class="muted"></div><div id="items"></div></section>
+<footer><small>Strata Destruct v0.6.2-dev / 取得した索引は原資料の本文検証ではありません。</small></footer>
 </main><script>
 const q=document.querySelector('#query'),button=document.querySelector('#search'),status=document.querySelector('#status'),out=document.querySelector('#output');
 function el(tag,txt,cls){const x=document.createElement(tag);if(cls)x.className=cls;x.textContent=txt;return x}
@@ -23,6 +23,8 @@ function renderAssessment(assessment){
  as.append(el('p','評価状況：'+(assessment?.status??'未実施')+'。全条件の適合は未確定です。'+(assessment?.error||''),'muted'));
  for(const c of assessment?.candidates??[]){
    const block=el('div','','item');block.append(el('h3',c.name+' — '+(c.status==='contradicted'?'条件不一致あり':'要確認')));
+   if(c.geo)block.append(el('p',c.geo.km===null?'所在地未確認':'直線距離 約'+c.geo.km+'km（所要時間未確認）','muted'));
+   if(c.route_url){const link=el('a','公共交通の経路を確認');link.href=c.route_url;link.target='_blank';link.rel='noopener noreferrer';block.append(link);}
    for(const k of c.checks){
      block.append(el('p',k.condition+'：'+({supported:'資料に記載あり',contradicted:'不一致の記載あり',unknown:'未確認'}[k.status])+' — '+k.detail));
      for(const e of k.evidence){const a=el('a',e.title+'：'+e.quote);a.href=e.url;a.target='_blank';a.rel='noopener noreferrer';block.append(a,el('div',''));}

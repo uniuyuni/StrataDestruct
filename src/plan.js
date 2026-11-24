@@ -69,7 +69,7 @@ export async function createPlan(query,ai,{timeoutMs=22000}={}){
     '必須キー: goal(string), keywords(string配列), search_queries(string配列), constraints(string配列)。',
     '推奨キー: sources(["web","wikipedia","crossref"]), languages(["ja","en"]), unknowns(string配列)。',
     'search_queriesは3件、異なる角度で。必要な異分野条件を必ず含め、1件は英語の検索フレーズ。',
-    '例：写真の空気感を天文学の画像復元から調べる → 「天文学 画像復元」「astronomical image restoration」「写真 空気感 画像処理」',
+    '検索語にユーザーと無関係な例題を混ぜない。地域調査では対象地域名、施設名、資料種別を組み合わせる。',
     '地域、現在の状況、旅行、店舗、製品などはsourcesをwebのみにする。学術研究はcrossrefも使う。数値条件、基準日、起点、移動手段などをconstraintsに保持する。出典や事実を捏造しない。',
     '入力:',query
   ].join('\n');
