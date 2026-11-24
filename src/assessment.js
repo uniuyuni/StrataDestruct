@@ -59,6 +59,6 @@ export async function assess(query,records,ai){
       }).sort((a,b)=>(a.geo.km??Infinity)-(b.geo.km??Infinity));
     }
     return {status:candidates.length?(recovered.partial?'partial':'ok'):'no_grounded_candidates',candidates,error:recovered.partial?'生成途中のため、完全な候補だけを復元しました':null};
-  }catch(e){return {status:'error',error:String(e.message).slice(0,200),candidates:[]};}
+  }catch(e){return {status:'source_only',notice:'AI評価を完了できなかったため、取得資料を保持しています。',error:String(e.message).slice(0,200),candidates:[]};}
   finally{clearTimeout(timer);}
 }
