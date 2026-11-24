@@ -10,7 +10,7 @@ const ms=()=>Math.round(performance.now());
 export default {
   async fetch(request, env) {
     const url=new URL(request.url);
-    if(url.pathname==='/api/health') return respond({app:'Strata Destruct',version:'0.6.0-dev',ai_binding:Boolean(env?.AI),status:'ok'});
+    if(url.pathname==='/api/health') return respond({app:'Strata Destruct',version:'0.6.1-dev',ai_binding:Boolean(env?.AI),status:'ok'});
     if(url.pathname==='/api/search' && request.method==='POST'){
       let payload;
       try{payload=await request.json();}catch{return respond({error:'JSONリクエストが不正です'},400);}
@@ -33,7 +33,7 @@ export default {
         ]);
         const findings={records:[...web.records,...indexes.records],reports:[...(web.report?[web.report]:[]),...indexes.reports]};
         const fetchMs=ms()-start-aiMs;
-        const assessment=skipAI?{status:'skipped',candidates:[]}:await assess(query,web.records,env?.AI);
+        const assessment=skipAI||payload?.defer_assessment===true?{status:'skipped',candidates:[]}:await assess(query,web.records,env?.AI);
         return respond({
           query,mode:'free_only',plan:parsed.plan,assessment,ai_status:parsed.status,
           ai_error:parsed.error,ai_model:parsed.model??null,records:findings.records,sources:findings.reports,
@@ -43,6 +43,15 @@ export default {
       }catch(e){
         return respond({error:'検索処理が失敗しました',detail:String(e?.message??e).slice(0,160),elapsed_ms:ms()-start},502);
       }
+    }
+    if(url.pathname==='/api/assess' && request.method==='POST'){
+      try{
+        const p=await request.json();
+        const query=typeof p.query==='string'?p.query.trim().slice(0,1200):'';
+        const records=Array.isArray(p.records)?p.records.slice(0,18).filter(r=>typeof r?.id==='string'&&typeof r?.snippet==='string'&&typeof r?.title==='string'&&typeof r?.url==='string'&&/^https?:\/\//.test(r.url)).map(r=>({id:r.id.slice(0,80),title:r.title.slice(0,250),snippet:r.snippet.slice(0,2200),url:r.url.slice(0,2000),published_at:r.published_at})): [];
+        if(!query)return respond({error:'検索文がありません'},400);
+        return respond(await assess(query,records,env?.AI));
+      }catch(e){return respond({status:'error',candidates:[],error:String(e.message).slice(0,200)},400);}
     }
     if(url.pathname.startsWith('/api/')) return respond({error:'Not found'},404);
     return env.ASSETS.fetch(request);
