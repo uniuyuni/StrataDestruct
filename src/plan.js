@@ -22,7 +22,7 @@ export function validatePlan(candidate,query){
   const search_queries=clean(candidate.search_queries,4);
   const keywords=clean(candidate.keywords,8);
   if(!keywords.length&&!search_queries.length)throw new Error('検索語が無いJSONです: keys='+Object.keys(candidate).slice(0,12).join(','));
-  const sources=clean(candidate.sources,3).filter(x=>x==='wikipedia'||x==='crossref');
+  const sources=clean(candidate.sources,3).filter(x=>x==='wikipedia'||x==='crossref'||x==='web');
   return {
     goal:typeof candidate.goal==='string'?candidate.goal.slice(0,300):query,
     keywords:keywords.length?keywords:search_queries,
@@ -67,10 +67,10 @@ export async function createPlan(query,ai,{timeoutMs=22000}={}){
   const prompt=[
     'あなたは調査計画を作るAI。必ずJSONのみ返してください。',
     '必須キー: goal(string), keywords(string配列), search_queries(string配列), constraints(string配列)。',
-    '推奨キー: sources(["wikipedia","crossref"]), languages(["ja","en"]), unknowns(string配列)。',
+    '推奨キー: sources(["web","wikipedia","crossref"]), languages(["ja","en"]), unknowns(string配列)。',
     'search_queriesは3件、異なる角度で。必要な異分野条件を必ず含め、1件は英語の検索フレーズ。',
     '例：写真の空気感を天文学の画像復元から調べる → 「天文学 画像復元」「astronomical image restoration」「写真 空気感 画像処理」',
-    '出典や事実を捏造しない。',
+    '地域、現在の状況、旅行、店舗、製品などはsourcesをwebのみにする。学術研究はcrossrefも使う。数値条件、基準日、起点、移動手段などをconstraintsに保持する。出典や事実を捏造しない。',
     '入力:',query
   ].join('\n');
   const errors=[];
