@@ -9,7 +9,15 @@ export function decodeRpc(body,id) {
   if(msg.error)throw Error(msg.error.message||'MCP error');
   return msg.result;
 }
-export function normalizeWeb(result){
+function selectExcerpt(text,terms){
+ if(text.length<=2200)return text;
+ const low=text.toLowerCase();const found=terms.map(t=>low.indexOf(String(t).toLowerCase())).filter(i=>i>=0);
+ if(!found.length)return text.slice(0,2200);
+ const pos=Math.min(...found);
+ if(pos<800)return text.slice(0,2200);
+ return text.slice(0,500)+'\n…\n'+text.slice(Math.max(0,pos-300),Math.max(0,pos-300)+1650);
+}
+export function normalizeWeb(result,terms=[]){
   const records=[],seen=new Set();
   function visit(v){
     if(typeof v==='string'){
@@ -21,13 +29,13 @@ export function normalizeWeb(result){
     if(typeof v.url==='string'&&/^https?:\/\//.test(v.url)&&!seen.has(v.url)){
       seen.add(v.url);
       const snippets=v.excerpts??v.snippets??v.snippet??v.text??v.content??'';
-      records.push({id:'web-'+(records.length+1),title:String(v.title??v.url).slice(0,250),url:v.url, snippet:(Array.isArray(snippets)?snippets.map(x=>typeof x==='string'?x:x.text??'').join('\n'):String(snippets)).slice(0,2200),source:'Parallel Web Search',evidence_level:'web_excerpt',published_at:v.publish_date??v.published_at??null,retrieved_at:new Date().toISOString()});
+      records.push({id:'web-'+(records.length+1),title:String(v.title??v.url).slice(0,250),url:v.url, snippet:selectExcerpt(Array.isArray(snippets)?snippets.map(x=>typeof x==='string'?x:x.text??'').join('\n'):String(snippets),terms),source:'Parallel Web Search',evidence_level:'web_excerpt',published_at:v.publish_date??v.published_at??null,retrieved_at:new Date().toISOString()});
     }else Object.values(v).forEach(visit);
   }
   visit(result?.structuredContent??result);
   return records.slice(0,18);
 }
-export async function webSearch(objective,queries,fetcher=fetch){
+export async function webSearch(objective,queries,fetcher=fetch,terms=[]){
   let session,protocol='2025-03-26',id=0;
   const ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),25000);
   async function rpc(method,params,notification=false){
@@ -57,7 +65,7 @@ export async function webSearch(objective,queries,fetcher=fetch){
     if('query'in p)args.query=queries.join(' ');
     if('max_results'in p)args.max_results=12;
     const result=await rpc('tools/call',{name:search.name,arguments:args});
-    const records=normalizeWeb(result);
+    const records=normalizeWeb(result,terms);
     if(!records.length)throw Error('No structured search records: '+JSON.stringify(result).slice(0,180));
     return records;
   }finally{clearTimeout(timer);}

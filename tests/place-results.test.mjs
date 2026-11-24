@@ -9,7 +9,7 @@ test('source cards exclude faraway locations and generic species, never confirm 
  {id:'c',title:'街路樹の種類 横浜市',url:'https://example.com/c',snippet:'横浜市 プラタナス'},
  {id:'d',title:'富岡総合公園公式サイト',url:'https://example.com/d',snippet:'横浜市 プラタナス（スズカケノキ）の木々が特徴的です。'}
  ],origin);
- assert.equal(r.status,'evidence_candidates');assert.equal(r.candidates.length,2);
+ assert.equal(r.status,'evidence_candidates');assert.equal(r.candidates.length,1);assert.equal(r.candidates[0].name,'富岡総合公園');
  assert.ok(r.candidates.every(c=>c.checks.every(k=>k.status==='unknown')));
  assert.ok(r.candidates.every(c=>c.checks[0].evidence.length));
 });

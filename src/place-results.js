@@ -16,9 +16,9 @@ export function discoveryPlan(query,origin,intent,now=new Date()){
  return {goal:query,keywords:intent.terms,search_queries:[
   region+' '+t+' 公園 並木 広場',
   region+' 周辺 '+alt+' 植栽 本数 樹木マップ',
-  region+' '+t+' 紅葉 黄葉 11月 公園',
+  region+' '+t+' '+date.slice(5,7)+'月 公園 紅葉 黄葉',
   region+' '+alt+' 樹木 公園 管理者 散策'
- ],constraints:[...(intent.minimum?[intent.minimum+'本以上']:[]),...(intent.season?['対象日 '+date+' の見頃']:[]),'起点 '+origin?.name],sources:['web'],target_date:date,ai_generated:false};
+ ],constraints:[...(intent.minimum?[intent.minimum+'本以上']:[]),...(intent.season?['対象日 '+date+' の見頃']:[]),'起点 '+origin?.name, '公共交通 '+scope(query)?.minutes+'分以内'],sources:['web'],target_date:date,ai_generated:false};
 }
 const norm=s=>String(s??'').normalize('NFKC').toLowerCase();
 const contains=(text,terms)=>terms.some(t=>norm(text).includes(norm(t)));
@@ -26,7 +26,8 @@ function excerpt(r,terms){
  const text=String(r.snippet??'');
  const lines=text.split(/\n+/).map(x=>x.trim()).filter(Boolean);
  const matching=lines.filter(x=>contains(x,terms));
- return (matching[0]??text).slice(0,240);
+ const substantive=matching.filter(x=>/木々|樹木|植栽|植え|並木|高木|本の木|大木|紅葉|黄葉|葉が|\d+\s*本/.test(x)&&!/^Name:/.test(x));
+ return (substantive[0]??matching[0]??text).slice(0,240);
 }
 function sourceName(r){
  const text=String(r.snippet??'');
@@ -62,13 +63,24 @@ export async function buildPlaceResults(query,records,originOverride){
   const g=groups.get(name);g.records.push(r);if(point){g.point=point;g.geo=geo;}
  }
  const candidates=[...groups.values()].map(g=>{
-  const ev=g.records.slice(0,3).map(r=>({id:r.id,title:r.title,url:r.url,quote:excerpt(r,intent.terms)}));
+  const ev=g.records.slice(0,3).map(r=>({id:r.id,title:r.title,url:r.url,quote:excerpt(r,intent.terms),published_at:r.published_at??null}));
+  const substantive=ev.filter(e=>/木々|樹木|植栽|植え|高木|本の木|大木|紅葉|黄葉|葉が|\d+\s*本/.test(e.quote)&&!/^Name:/.test(e.quote));
+  const official=g.records.some(r=>/\.lg\.jp\/|hama-midorinokyokai\.or\.jp\//.test(r.url));
   const countEvidence=ev.filter(e=>contains(e.quote,intent.terms)&&/\d+\s*本/.test(e.quote.normalize('NFKC')));
-  const checks=[{condition:intent.target+'の存在',status:'unknown',detail:'対象樹種に言及する資料あり。現存する樹木の確認は未実施。',evidence:ev}];
-  if(intent.minimum)checks.push({condition:intent.minimum+'本以上',status:'unknown',detail:countEvidence.length?'本数の記載候補あり。同一地点・同一樹種か未確認。':'本数を裏付ける資料は未取得。',evidence:countEvidence});
+  const checks=[{condition:intent.target+'の存在',status:'unknown',detail:substantive.length?'樹木の描写がある資料を取得。記録時点の情報であり現在は未確認。':'名称が一致するだけで、樹木の存在は未確認。',evidence:ev}];
+  if(intent.minimum)checks.push({condition:intent.minimum+'本以上',status:'unknown',detail:countEvidence.length?'本数の記載候補あり。総数が'+intent.minimum+'本以上とは確認できていません。':'本数を裏付ける資料は未取得。',evidence:countEvidence});
   if(intent.season)checks.push({condition:'指定日の見頃',status:'unknown',detail:'対象日・対象樹種の色づきは未確認。',evidence:[]});
   checks.push({condition:'公共交通で'+spatial.minutes+'分以内',status:'unknown',detail:'経路未計算。下の経路確認リンクで確認可能。',evidence:[]});
-  return {name:g.name,checks,geo:g.geo,point:g.point,status:'unverified',route_url:routeLink(origin?.name??spatial.origin,g.point?g.point.lat+','+g.point.lon:g.name),next_queries:[],source_count:g.records.length};
- }).sort((a,b)=>b.source_count-a.source_count||(a.geo.km??Infinity)-(b.geo.km??Infinity)).slice(0,8);
+  return {name:g.name,checks,geo:g.geo,point:g.point,status:'unverified',route_url:routeLink(origin?.name??spatial.origin,g.point?g.point.lat+','+g.point.lon:g.name),next_queries:[],source_count:g.records.length,substantive_count:substantive.length,official_source:official};
+ }).filter(c=>c.substantive_count>0).sort((a,b)=>Number(b.official_source)-Number(a.official_source)||b.substantive_count-a.substantive_count||b.source_count-a.source_count||(a.geo.km??Infinity)-(b.geo.km??Infinity)).slice(0,8);
  return {status:candidates.length?'evidence_candidates':'no_grounded_candidates',candidates,notice:'実資料から抽出した候補です。全条件の確認済み候補は0件です。',confirmed_count:0};
+}
+
+export function focusedSourceQueries(intent,origin){
+ const region=origin?.name?.match(/横浜市|[^\s（(]{2,12}市/)?.[0]??origin?.name??'';
+ // Regional source registry: publisher domains only, never stored candidate locations.
+ const publishers={'横浜市':['hama-midorinokyokai.or.jp/park/','city.yokohama.lg.jp']};
+ const domains=publishers[region]??[];
+ return {objective:region+'の実在する公園・並木を探す。対象樹種は'+intent.terms.join('、')+'。各公園の公式管理者が樹木そのものについて説明したページや現地記録を優先。自治体全体の樹木一覧や駅のページは不要。個別公園名をタイトルに含み、対象樹種の説明部分を抽出する。',
+ queries:domains.length?[...domains.flatMap(domain=>intent.terms.slice(0,2).map(t=>'site:'+domain+' "'+t+'" 公園'))].slice(0,4):intent.terms.slice(0,2).map(t=>region+' "'+t+'" 公園 管理者 ブログ')};
 }
