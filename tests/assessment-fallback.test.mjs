@@ -1,0 +1,2 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {assess} from '../src/assessment.js';
+test('malformed JSON retains source leads',async()=>{const rows=[{id:'r',title:'test document',url:'https://example.org/',snippet:'original text'}];const r=await assess('自由文',rows,{run:async()=>({response:'{"candidates":[{"name":"broken"'})});assert.equal(r.status,'source_only');assert.equal(r.leads[0].name,rows[0].title);assert.equal(r.candidates.length,0);});

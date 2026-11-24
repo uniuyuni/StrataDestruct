@@ -1,7 +1,7 @@
 import { createPlan, basicPlan } from './plan.js';
 import { searchSources } from './providers.js';
 import { webSearch } from './web-search.js';
-import { assess } from './assessment.js';
+import { assess,sourceFallback } from './assessment.js';
 import {scope,originFor,localize} from './geo.js';
 import {treeIntent,discoveryPlan,buildPlaceResults,focusedSourceQueries} from './place-results.js';
 import {publisherSearch} from './public-publishers.js';
@@ -13,7 +13,7 @@ const ms=()=>Math.round(performance.now());
 export default {
   async fetch(request, env) {
     const url=new URL(request.url);
-    if(url.pathname==='/api/health') return respond({app:'Strata Destruct',version:'0.6.5-dev',ai_binding:Boolean(env?.AI),status:'ok'});
+    if(url.pathname==='/api/health') return respond({app:'Strata Destruct',version:'0.6.6-dev',ai_binding:Boolean(env?.AI),status:'ok'});
     if(url.pathname==='/api/search' && request.method==='POST'){
       let payload;
       try{payload=await request.json();}catch{return respond({error:'JSONリクエストが不正です'},400);}
@@ -52,9 +52,9 @@ export default {
         if(spatial)web.records=localize(web.records,origin,spatial.minutes).filter(r=>r.geo.status!=='excluded');
         const findings={records:[...web.records,...indexes.records],reports:[...(web.report?[web.report]:[]),...focusedReports,...indexes.reports]};
         const fetchMs=ms()-start-aiMs;
-        const assessment=tree&&!skipAI?await buildPlaceResults(query,web.records,origin):skipAI||payload?.defer_assessment===true?{status:'skipped',candidates:[]}:await assess(query,web.records,env?.AI);
+        const assessment=tree&&!skipAI?await buildPlaceResults(query,web.records,origin):skipAI||payload?.defer_assessment===true?sourceFallback(findings.records):await assess(query,web.records,env?.AI);
         return respond({
-          query,mode:'free_only',spatial,origin,plan:parsed.plan,assessment,ai_status:parsed.status,
+          query,mode:'free_only',version:'0.6.6-dev',spatial,origin,intent:tree,plan:parsed.plan,assessment,ai_status:parsed.status,
           ai_error:parsed.error,ai_model:parsed.model??null,records:findings.records,sources:findings.reports,
           timings_ms:{ai:aiMs,sources:fetchMs,total:ms()-start},
           caveat:'検索索引・Web抜粋・メタデータです。条件適合と原資料全文は未検証です。'

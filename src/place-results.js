@@ -4,14 +4,18 @@ import {scope,originFor,coordinates,gate,routeLink} from './geo.js';
 export function treeIntent(query){
  const q=query.normalize('NFKC');
  const match=q.match(/([\p{Script=Katakana}ー]{2,30}|[\p{Script=Han}]{1,12}|[A-Za-z][A-Za-z -]{1,35})(?:の木|の樹木|の並木)/u);
- if(!match)return null;
- const target=match[1], n=q.match(/(\d+)\s*本/);
  const aliases={プラタナス:['スズカケノキ','モミジバスズカケノキ','Platanus'],イチョウ:['銀杏','Ginkgo']};
- return {target,terms:[target,...(aliases[target]??[])],minimum:n?Number(n[1]):null,season:/見頃|紅葉|黄葉|開花|満開/.test(q)};
+ const named=Object.keys(aliases).find(x=>[x,...aliases[x]].some(t=>q.toLowerCase().includes(t.toLowerCase())));
+ const short=q.match(/([\p{Script=Katakana}ー]{2,30}|[\p{Script=Han}]{1,12})(?:が|を)\s*(?:少なくとも|最低|約|およそ)?\s*\d+\s*本/u);
+ const target=named??match?.[1]??short?.[1];
+ if(!target)return null;
+ const n=q.match(/(\d+)\s*本/);
+ return {target,terms:[target,...(aliases[target]??[])],minimum:n?Number(n[1]):null,season:/見頃|見ごろ|紅葉|黄葉|開花|満開/.test(q)};
 }
 export function discoveryPlan(query,origin,intent,now=new Date()){
  const region=origin?.name?.match(/横浜市|[^\s（(]{2,12}市/)?.[0]??origin?.name??'';
- const date=new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(now.getTime()+(/明日/.test(query)?86400000:0)));
+ const explicit=query.normalize('NFKC').match(/(?:(\d{4})年\s*)?(\d{1,2})月\s*(\d{1,2})日/);
+ const date=explicit?(explicit[1]??new Intl.DateTimeFormat('en',{timeZone:'Asia/Tokyo',year:'numeric'}).format(now))+'-'+explicit[2].padStart(2,'0')+'-'+explicit[3].padStart(2,'0'):new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(now.getTime()+(/明日/.test(query)?86400000:0)));
  const t=intent.terms[0],alt=intent.terms[1]??t;
  return {goal:query,keywords:intent.terms,search_queries:[
   region+' '+t+' 公園 並木 広場',

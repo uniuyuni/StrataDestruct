@@ -36,8 +36,12 @@ export function recoverCandidates(value){
     return {raw:{candidates},partial:true};
   }
 }
+export function sourceFallback(records,error=null){
+ const leads=records.slice(0,12).filter(r=>r.title&&r.url).map(r=>({name:r.title,url:r.url,snippet:r.snippet??'',source:r.source??'取得資料',published_at:r.published_at??null}));
+ return {status:'source_only',notice:leads.length?'候補の適合は未検証です。取得資料から調査の手がかりを表示します（訪問候補の確定ではありません）。':'根拠資料が取得できませんでした。',error,candidates:[],leads};
+}
 export async function assess(query,records,ai){
-  if(!ai?.run||!records.length)return {status:'unavailable',candidates:[]};
+  if(!ai?.run||!records.length)return sourceFallback(records,'評価AIまたは資料が利用できません');
   let timer;
   try{
     const evidence=records.slice(0,10).map(r=>({id:r.id,title:r.title,text:r.snippet.slice(0,850),published:r.published_at}));
@@ -58,7 +62,7 @@ export async function assess(query,records,ai){
         return [{...c,checks,geo,point,status:'unverified',route_url:routeLink(origin?.name??spatial.origin,c.name)}];
       }).sort((a,b)=>(a.geo.km??Infinity)-(b.geo.km??Infinity));
     }
-    return {status:candidates.length?(recovered.partial?'partial':'ok'):'no_grounded_candidates',candidates,error:recovered.partial?'生成途中のため、完全な候補だけを復元しました':null};
-  }catch(e){return {status:'source_only',notice:'AI評価を完了できなかったため、取得資料を保持しています。',error:String(e.message).slice(0,200),candidates:[]};}
+    return candidates.length?{status:recovered.partial?'partial':'ok',candidates,error:recovered.partial?'生成途中のため、完全な候補だけを復元しました':null}:sourceFallback(records,'候補の根拠が不足');
+  }catch(e){return sourceFallback(records,String(e.message).slice(0,200));}
   finally{clearTimeout(timer);}
 }

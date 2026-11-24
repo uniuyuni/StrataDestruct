@@ -14,3 +14,5 @@ test('source cards exclude faraway locations and generic species, never confirm 
  assert.ok(r.candidates.every(c=>c.checks[0].evidence.length));
 });
 test('empty source results are not manufactured',async()=>{const r=await buildPlaceResults(query,[],origin);assert.equal(r.candidates.length,0);});
+
+test('paraphrases preserve tree constraints',()=>{for(const q of ['明日見頃のプラタナスが10本以上ある場所を、山手駅から公共交通機関で1時間以内の範囲で探して','スズカケノキの並木が10本以上','ケヤキが最低5本ある場所'])assert.ok(treeIntent(q)?.minimum>=5);});
