@@ -26,7 +26,7 @@ function excerpt(r,terms){
  const text=String(r.snippet??'');
  const lines=text.split(/\n+/).map(x=>x.trim()).filter(Boolean);
  const matching=lines.filter(x=>contains(x,terms));
- const substantive=matching.filter(x=>/木々|樹木|植栽|植え|並木|高木|本の木|大木|紅葉|黄葉|葉が|\d+\s*本/.test(x)&&!/^Name:/.test(x));
+ const substantive=matching.filter(x=>/木々|樹木|植栽|植え|並木|高木|本の木|大木|紅葉|黄葉|葉が|実が|実は|\d+\s*本/.test(x)&&!/^Name:/.test(x));
  return (substantive[0]??matching[0]??text).slice(0,240);
 }
 function sourceName(r){
@@ -36,6 +36,7 @@ function sourceName(r){
  // Accept actual site names in the title, not species or article headings alone.
  const title=String(r.title??'');
  if(/街路樹の種類|街路樹による|街路樹ハンドブック|紅葉スポット|おすすめ|ランキング|始発検索|終電検索|乗換案内|一覧/.test(title))return null;
+ const direct=title.match(/(?:^|[|｜])\s*([^|｜]+?公園)公式サイト/);if(direct)return direct[1].trim();
  const names=title.match(/[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}ー・ヶケ]{2,35}(?:公園|緑地|庭園|植物園|並木道|並木|広場|遊歩道|通り)/gu)??[];
  return names.find(x=>!/(?:の|みどころ|紹介|へのアクセス)$/.test(x)&&!/^街路樹|^紅葉|^観光/.test(x))??null;
 }
@@ -64,7 +65,7 @@ export async function buildPlaceResults(query,records,originOverride){
  }
  const candidates=[...groups.values()].map(g=>{
   const ev=g.records.slice(0,3).map(r=>({id:r.id,title:r.title,url:r.url,quote:excerpt(r,intent.terms),published_at:r.published_at??null}));
-  const substantive=ev.filter(e=>/木々|樹木|植栽|植え|高木|本の木|大木|紅葉|黄葉|葉が|\d+\s*本/.test(e.quote)&&!/^Name:/.test(e.quote));
+  const substantive=ev.filter(e=>/木々|樹木|植栽|植え|高木|本の木|大木|紅葉|黄葉|葉が|実が|実は|\d+\s*本/.test(e.quote)&&!/^Name:/.test(e.quote));
   const official=g.records.some(r=>/\.lg\.jp\/|hama-midorinokyokai\.or\.jp\//.test(r.url));
   const countEvidence=ev.filter(e=>contains(e.quote,intent.terms)&&/\d+\s*本/.test(e.quote.normalize('NFKC')));
   const checks=[{condition:intent.target+'の存在',status:'unknown',detail:substantive.length?'樹木の描写がある資料を取得。記録時点の情報であり現在は未確認。':'名称が一致するだけで、樹木の存在は未確認。',evidence:ev}];

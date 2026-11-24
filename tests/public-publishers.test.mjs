@@ -1,0 +1,3 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {parseParkIndex,extractPublisherEvidence} from '../src/public-publishers.js';
+test('derive park links from the publisher listing',()=>{assert.deepEqual(parseParkIndex('<a href="/park/a/">A公園</a><a href="https://example.org/park/b/">B公園</a>'),[{path:'/park/a/',name:'A公園'}]);});
+test('extract matched source text, not unrelated tree counts',()=>{const s=extractPublisherEvidence('<p>ケヤキの木々が特徴です。</p><p>桜が30本あります。</p>',['ケヤキ']);assert.ok(s.includes('ケヤキの木々'));assert.equal(extractPublisherEvidence('<p>桜が30本あります。</p>',['ケヤキ']),'');});

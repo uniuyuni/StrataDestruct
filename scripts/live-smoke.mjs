@@ -1,8 +1,8 @@
 const base=process.env.STRATA_URL||'https://stratadestruct.uniuyuni-c76.workers.dev';
 async function req(path,body,ms=90000){const r=await fetch(base+path,{method:body?'POST':'GET',...(body?{headers:{'content-type':'application/json'},body:JSON.stringify(body)}:{}),signal:AbortSignal.timeout(ms)});if(!r.ok)throw Error(path+' HTTP '+r.status);return r.json();}
 let h;
-for(let i=0;i<30;i++){h=await req('/api/health');if(h.version==='0.6.4-dev')break;await new Promise(r=>setTimeout(r,4000));}
-if(h.version!=='0.6.4-dev')throw Error('deployment mismatch '+h.version);
+for(let i=0;i<30;i++){h=await req('/api/health');if(h.version==='0.6.5-dev')break;await new Promise(r=>setTimeout(r,4000));}
+if(h.version!=='0.6.5-dev')throw Error('deployment mismatch '+h.version);
 const query='明日見頃のプラタナスの木が少なくとも10本あるところ。山手駅から１時間の範囲内で公共交通機関利用';
 const result=await req('/api/search',{query,defer_assessment:true});
 console.log('PLAN',JSON.stringify(result.plan));console.log('SOURCES',JSON.stringify(result.sources));
